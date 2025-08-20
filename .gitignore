@@ -1,0 +1,47 @@
+# ========================
+# Node / React
+# ========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+build/
+.env
+.DS_Store
+
+# ========================
+# Python / FastAPI
+# ========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+ENV/
+.env
+*.sqlite3
+*.db
+*.log
+*.egg-info/
+dist/
+*.py[cod]
+*.so
+*.egg
+*.coverage
+htmlcov/
+
+# ========================
+# VSCode / IDEs
+# ========================
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# ========================
+# System files
+# ========================
+Thumbs.db
+Desktop.ini
+.DS_Store
