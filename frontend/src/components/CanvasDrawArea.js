@@ -27,17 +27,21 @@ function CanvasDrawArea({ setPredictedNumber }) {
     };
 
     return (
-        <div className="canvas-container">
-            <CanvasDraw
-                ref={canvasRef}
-                brushRadius={8}
-                lazyRadius={0}
-                brushColor="#000"
-                canvasWidth={300}
-                canvasHeight={300}
-                onChange={handleEnd}
-            />
-            <button onClick={handleClear}>Clear</button>
+        <div>
+            <div className="canvas-container">
+                <CanvasDraw
+                    ref={canvasRef}
+                    brushRadius={6}
+                    lazyRadius={0}
+                    brushColor="#000"
+                    canvasWidth={800}
+                    canvasHeight={300}
+                    onChange={handleEnd}
+                />
+            </div>
+            <button className="clear" onClick={handleClear}>
+                Clear
+            </button>
         </div>
     );
 }
