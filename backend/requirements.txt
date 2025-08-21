@@ -1,7 +1,7 @@
 fastapi
-uvicorn
-torch
-torchvision
-pillow
+uvicorn[standard]
 numpy
+pillow
 opencv-python
+python-multipart
+tensorflow-cpu>=2.15
