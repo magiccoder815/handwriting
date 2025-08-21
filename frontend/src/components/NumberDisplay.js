@@ -4,7 +4,7 @@ import "./NumberDisplay.css";
 function NumberDisplay({ predictedNumber }) {
     return (
         <div className="number-display">
-            <h2>Predicted Number:</h2>
+            <p>Predicted Number:</p>
             <p>{predictedNumber || "-"}</p>
         </div>
     );
