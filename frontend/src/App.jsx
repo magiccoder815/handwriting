@@ -12,12 +12,11 @@ export default function App() {
     const [history, setHistory] = useState([]);
 
     const W = 800,
-        H = 200;
+        H = 160;
 
     useEffect(() => {
         const c = canvasRef.current;
         const ctx = c.getContext("2d");
-        // white background
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, c.width, c.height);
         ctx.lineCap = "round";
@@ -27,18 +26,20 @@ export default function App() {
     }, []);
 
     useEffect(() => {
-        const c = canvasRef.current;
-        const ctx = c.getContext("2d");
+        const ctx = canvasRef.current.getContext("2d");
         ctx.lineWidth = lineWidth;
     }, [lineWidth]);
 
     const start = (x, y) => {
-        const c = canvasRef.current;
-        const ctx = c.getContext("2d");
-        // snapshot for undo
+        const ctx = canvasRef.current.getContext("2d");
         setHistory((h) => [
             ...h.slice(-9),
-            ctx.getImageData(0, 0, c.width, c.height),
+            ctx.getImageData(
+                0,
+                0,
+                canvasRef.current.width,
+                canvasRef.current.height
+            ),
         ]);
         ctx.beginPath();
         ctx.moveTo(x, y);
@@ -75,44 +76,45 @@ export default function App() {
     const onMouseLeave = () => end();
 
     const clear = () => {
-        const c = canvasRef.current;
-        const ctx = c.getContext("2d");
-        ctx.clearRect(0, 0, c.width, c.height);
+        const ctx = canvasRef.current.getContext("2d");
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         setResult(null);
         drawBoxes([]);
     };
 
     const undo = () => {
-        const c = canvasRef.current;
-        const ctx = c.getContext("2d");
+        const ctx = canvasRef.current.getContext("2d");
         setHistory((h) => {
             if (h.length === 0) return h;
-            const last = h[h.length - 1];
-            ctx.putImageData(last, 0, 0);
+            ctx.putImageData(h[h.length - 1], 0, 0);
             return h.slice(0, -1);
         });
     };
 
     const drawBoxes = (boxes = []) => {
-        const layer = boxLayerRef.current;
-        const ctx = layer.getContext("2d");
-        ctx.clearRect(0, 0, layer.width, layer.height);
+        const ctx = boxLayerRef.current.getContext("2d");
+        ctx.clearRect(
+            0,
+            0,
+            boxLayerRef.current.width,
+            boxLayerRef.current.height
+        );
         ctx.lineWidth = 2;
         ctx.strokeStyle = "rgba(47,129,247,0.9)";
-        boxes.forEach(([x1, y1, x2, y2]) => {
-            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-        });
+        boxes.forEach(([x1, y1, x2, y2]) =>
+            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
+        );
     };
 
     const send = async () => {
         setIsLoading(true);
         setResult(null);
         try {
-            const c = canvasRef.current;
-            // ensure white bg is kept
-            const blob = await new Promise((res) => c.toBlob(res, "image/png"));
+            const blob = await new Promise((res) =>
+                canvasRef.current.toBlob(res, "image/png")
+            );
             const form = new FormData();
             form.append("image", blob, "drawing.png");
             const r = await fetch(`${API_URL}/predict`, {
@@ -130,14 +132,20 @@ export default function App() {
         }
     };
 
+    const expression = result?.predicted ?? "—";
+    const evaluated = result?.value
+        ? `${result.predicted} = ${result.value}`
+        : null;
+
     return (
         <div className="container">
             <div className="card">
-                <h1>Handwritten Number Recognizer</h1>
+                <h1>Handwritten Math Recognizer</h1>
                 <p className="label">
-                    Write digits left → right with small gaps (e.g., 23435).
-                    Click Recognize to see the prediction.
+                    Write digits and operators (+, -, ×, ÷) left → right. Leave
+                    small gaps around operators.
                 </p>
+
                 <div className="row toolbar" style={{ margin: "12px 0" }}>
                     <button className="btn" onClick={send} disabled={isLoading}>
                         {isLoading ? "Recognizing…" : "Recognize"}
@@ -184,16 +192,22 @@ export default function App() {
                 </div>
 
                 <div style={{ marginTop: 16 }}>
-                    <div className="label">Prediction</div>
-                    <div className="pred">
-                        {result ? result.predicted : "—"}
-                    </div>
-                    {result?.per_digit && (
+                    <div className="label">Raw prediction</div>
+                    <div className="pred">{expression}</div>
+                    {evaluated && (
+                        <div
+                            className="label"
+                            style={{ marginTop: 8, fontSize: 18 }}
+                        >
+                            {evaluated}
+                        </div>
+                    )}
+                    {result?.per_token && (
                         <div className="label" style={{ marginTop: 8 }}>
-                            {result.per_digit
+                            {result.per_token
                                 .map(
                                     (d, i) =>
-                                        `#${i + 1}:${d.digit} (${(
+                                        `#${i + 1}:${d.token} [${d.kind}] (${(
                                             d.prob * 100
                                         ).toFixed(1)}%)`
                                 )
