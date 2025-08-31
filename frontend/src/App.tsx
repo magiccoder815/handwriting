@@ -1,23 +1,24 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import type { PredictResponse, Box } from "./types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL =
+    (import.meta as any).env?.VITE_API_URL || "http://localhost:8000";
+
+const W = 800;
+const H = 160;
 
 export default function App() {
-    const canvasRef = useRef(null);
-    const boxLayerRef = useRef(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const boxLayerRef = useRef<HTMLCanvasElement | null>(null);
     const [drawing, setDrawing] = useState(false);
     const [lineWidth, setLineWidth] = useState(18);
     const [isLoading, setIsLoading] = useState(false);
-    const [result, setResult] = useState(null);
-    const [history, setHistory] = useState([]);
-
-    const W = 800,
-        H = 160;
+    const [result, setResult] = useState<PredictResponse | null>(null);
+    const [history, setHistory] = useState<ImageData[]>([]);
 
     useEffect(() => {
-        const c = canvasRef.current;
-        const ctx = c.getContext("2d");
-        // white background
+        const c = canvasRef.current!;
+        const ctx = c.getContext("2d")!;
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, c.width, c.height);
         ctx.lineCap = "round";
@@ -27,15 +28,14 @@ export default function App() {
     }, []);
 
     useEffect(() => {
-        const c = canvasRef.current;
-        const ctx = c.getContext("2d");
+        const c = canvasRef.current!;
+        const ctx = c.getContext("2d")!;
         ctx.lineWidth = lineWidth;
     }, [lineWidth]);
 
-    const start = (x, y) => {
-        const c = canvasRef.current;
-        const ctx = c.getContext("2d");
-        // snapshot for undo
+    const start = (x: number, y: number) => {
+        const c = canvasRef.current!;
+        const ctx = c.getContext("2d")!;
         setHistory((h) => [
             ...h.slice(-9),
             ctx.getImageData(0, 0, c.width, c.height),
@@ -45,29 +45,29 @@ export default function App() {
         setDrawing(true);
     };
 
-    const draw = (x, y) => {
+    const draw = (x: number, y: number) => {
         if (!drawing) return;
-        const ctx = canvasRef.current.getContext("2d");
+        const ctx = canvasRef.current!.getContext("2d")!;
         ctx.lineTo(x, y);
         ctx.stroke();
     };
 
     const end = () => setDrawing(false);
 
-    const pos = (e) => {
-        const rect = canvasRef.current.getBoundingClientRect();
+    const pos = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const rect = canvasRef.current!.getBoundingClientRect();
         const x =
-            (e.clientX - rect.left) * (canvasRef.current.width / rect.width);
+            (e.clientX - rect.left) * (canvasRef.current!.width / rect.width);
         const y =
-            (e.clientY - rect.top) * (canvasRef.current.height / rect.height);
+            (e.clientY - rect.top) * (canvasRef.current!.height / rect.height);
         return { x, y };
     };
 
-    const onMouseDown = (e) => {
+    const onMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const { x, y } = pos(e);
         start(x, y);
     };
-    const onMouseMove = (e) => {
+    const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const { x, y } = pos(e);
         draw(x, y);
     };
@@ -75,8 +75,8 @@ export default function App() {
     const onMouseLeave = () => end();
 
     const clear = () => {
-        const c = canvasRef.current;
-        const ctx = c.getContext("2d");
+        const c = canvasRef.current!;
+        const ctx = c.getContext("2d")!;
         ctx.clearRect(0, 0, c.width, c.height);
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, c.width, c.height);
@@ -85,8 +85,8 @@ export default function App() {
     };
 
     const undo = () => {
-        const c = canvasRef.current;
-        const ctx = c.getContext("2d");
+        const c = canvasRef.current!;
+        const ctx = c.getContext("2d")!;
         setHistory((h) => {
             if (h.length === 0) return h;
             const last = h[h.length - 1];
@@ -95,9 +95,9 @@ export default function App() {
         });
     };
 
-    const drawBoxes = (boxes = []) => {
-        const layer = boxLayerRef.current;
-        const ctx = layer.getContext("2d");
+    const drawBoxes = (boxes: Box[] = []) => {
+        const layer = boxLayerRef.current!;
+        const ctx = layer.getContext("2d")!;
         ctx.clearRect(0, 0, layer.width, layer.height);
         ctx.lineWidth = 2;
         ctx.strokeStyle = "rgba(47,129,247,0.9)";
@@ -107,12 +107,13 @@ export default function App() {
     };
 
     const send = async () => {
-        setIsLoading(true);
-        setResult(null);
         try {
-            const c = canvasRef.current;
-            // ensure white bg is kept
-            const blob = await new Promise((res) => c.toBlob(res, "image/png"));
+            setIsLoading(true);
+            setResult(null);
+            const c = canvasRef.current!;
+            const blob: Blob = await new Promise(
+                (res) => c.toBlob((b) => res(b as Blob), "image/png")!
+            );
             const form = new FormData();
             form.append("image", blob, "drawing.png");
             const r = await fetch(`${API_URL}/predict`, {
@@ -120,7 +121,7 @@ export default function App() {
                 body: form,
             });
             if (!r.ok) throw new Error(await r.text());
-            const data = await r.json();
+            const data: PredictResponse = await r.json();
             setResult(data);
             drawBoxes(data.boxes);
         } catch (err) {
@@ -131,35 +132,55 @@ export default function App() {
     };
 
     return (
-        <div className="container">
-            <div className="card">
-                <h1>Handwritten Number Recognizer</h1>
-                <p className="label">
+        <div className="max-w-[900px] mx-auto p-5 mt-10">
+            <div className="bg-panel rounded-xl p-5 shadow-card">
+                <h1 className="text-2xl font-bold">
+                    Handwritten Number Recognizer
+                </h1>
+                <p className="text-muted text-sm mt-1">
                     Write digits left → right with small gaps (e.g., 23435).
                     Click Recognize to see the prediction.
                 </p>
-                <div className="row toolbar" style={{ margin: "12px 0" }}>
-                    <button className="btn" onClick={send} disabled={isLoading}>
+
+                <div className="flex flex-wrap items-center gap-3 mt-4">
+                    <button
+                        onClick={send}
+                        disabled={isLoading}
+                        className="bg-brand disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-4 py-2 rounded-xl"
+                    >
                         {isLoading ? "Recognizing…" : "Recognize"}
                     </button>
-                    <button className="btn secondary" onClick={undo}>
+                    <button
+                        onClick={undo}
+                        className="bg-[#39424e] text-white font-semibold px-4 py-2 rounded-xl"
+                    >
                         Undo
                     </button>
-                    <button className="btn secondary" onClick={clear}>
+                    <button
+                        onClick={clear}
+                        className="bg-[#39424e] text-white font-semibold px-4 py-2 rounded-xl"
+                    >
                         Clear
                     </button>
-                    <div style={{ marginLeft: "auto" }} />
-                    <span className="label">Pen width</span>
-                    <input
-                        type="range"
-                        min="6"
-                        max="36"
-                        value={lineWidth}
-                        onChange={(e) => setLineWidth(+e.target.value)}
-                    />
+
+                    <div className="ml-auto flex items-center gap-2">
+                        <span className="text-muted text-sm">Pen width</span>
+                        <input
+                            type="range"
+                            min={6}
+                            max={36}
+                            value={lineWidth}
+                            onChange={(e) =>
+                                setLineWidth(Number(e.target.value))
+                            }
+                        />
+                    </div>
                 </div>
 
-                <div className="canvasWrap" style={{ width: W, height: H }}>
+                <div
+                    className="relative border border-[#2a2f36] rounded-xl overflow-hidden mt-4"
+                    style={{ width: W, height: H }}
+                >
                     <canvas
                         ref={canvasRef}
                         width={W}
@@ -177,19 +198,19 @@ export default function App() {
                     />
                     <canvas
                         ref={boxLayerRef}
-                        className="boxLayer"
+                        className="absolute inset-0 pointer-events-none"
                         width={W}
                         height={H}
                     />
                 </div>
 
-                <div style={{ marginTop: 16 }}>
-                    <div className="label">Prediction</div>
-                    <div className="pred">
+                <div className="mt-4">
+                    <div className="text-muted text-sm">Prediction</div>
+                    <div className="text-3xl font-extrabold tracking-wide2">
                         {result ? result.predicted : "—"}
                     </div>
                     {result?.per_digit && (
-                        <div className="label" style={{ marginTop: 8 }}>
+                        <div className="text-muted text-sm mt-2">
                             {result.per_digit
                                 .map(
                                     (d, i) =>
