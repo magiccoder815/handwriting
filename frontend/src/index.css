@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: custom utilities that mirror your previous palette */
+@layer base {
+    :root {
+        --bg: #0b0c10;
+        --panel: #15181e;
+        --text: #e8eef2;
+        --muted: #9aa6b2;
+    }
+}
