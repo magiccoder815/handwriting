@@ -142,8 +142,8 @@ export default function App() {
             <div className="card">
                 <h1>Handwritten Math Recognizer</h1>
                 <p className="label">
-                    Write digits and operators (+, -, ×, ÷) left → right. Leave
-                    small gaps around operators.
+                    Write digits left → right. Leave small gaps around
+                    operators.
                 </p>
 
                 <div className="row toolbar" style={{ margin: "12px 0" }}>
